@@ -1,135 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Users, UserCheck, Lock } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application de Présence</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/js/all.min.js"></script>
+</head>
+<body class="bg-gray-100 flex justify-center items-center h-screen">
+  <div class="bg-white shadow-lg rounded-lg p-6 w-full max-w-md space-y-6">
+    <div class="text-center">
+      <h1 class="text-2xl font-bold">Application de Présence</h1>
+    </div>
 
-const PresenceApp = () => {
-  const [count, setCount] = useState(() => {
-    return Number(localStorage.getItem('totalClicks') || 0);
-  });
-  const [isPresent, setIsPresent] = useState(false);
-  const [presentUsers, setPresentUsers] = useState(0);
+    <div class="flex justify-between items-center">
+      <div class="text-center">
+        <div id="clickCount" class="text-4xl font-bold">0</div>
+        <div class="text-gray-500">Nombre total de clics</div>
+        <div class="text-blue-500 text-sm">Le compteur est sauvegardé automatiquement</div>
+      </div>
 
-  useEffect(() => {
-    localStorage.setItem('totalClicks', String(count));
-  }, [count]);
+      <button id="clickButton" disabled class="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-4 rounded flex items-center justify-center gap-2 w-full opacity-50 cursor-not-allowed">
+        <i class="fas fa-lock"></i>
+        Connectez-vous pour cliquer
+      </button>
+    </div>
 
-  // Déconnexion automatique quand l'utilisateur quitte la page
-  useEffect(() => {
-    const handleUnload = () => {
+    <div class="text-center">
+      <button id="presenceButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded flex items-center justify-center gap-2 w-full">
+        <i class="fas fa-user-check"></i>
+        Je suis là !
+      </button>
+      <div id="presenceMessage" class="text-orange-500 text-sm mt-2 hidden">
+        Cliquez sur "Je suis là !" pour débloquer
+      </div>
+      <div id="presenceConfirmation" class="bg-green-50 text-green-600 rounded-lg p-2 text-sm hidden">
+        ✓ Vous êtes marqué comme présent
+        <div class="text-xs text-gray-500 mt-1">
+          Déconnexion automatique à la fermeture
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-center gap-2 text-lg">
+      <i class="fas fa-users text-blue-500"></i>
+      <span id="onlineUsers">0 personne présente</span>
+    </div>
+  </div>
+
+  <script>
+    // Récupération des éléments HTML
+    const clickCount = document.getElementById('clickCount');
+    const clickButton = document.getElementById('clickButton');
+    const presenceButton = document.getElementById('presenceButton');
+    const presenceMessage = document.getElementById('presenceMessage');
+    const presenceConfirmation = document.getElementById('presenceConfirmation');
+    const onlineUsers = document.getElementById('onlineUsers');
+
+    // Chargement des données depuis le localStorage
+    let totalClicks = Number(localStorage.getItem('totalClicks') || 0);
+    let isPresent = localStorage.getItem('userPresent') === 'true';
+    let totalPresentUsers = Number(localStorage.getItem('totalPresentUsers') || 0);
+
+    // Mise à jour de l'interface
+    clickCount.textContent = totalClicks;
+    if (isPresent) {
+      presenceConfirmation.classList.remove('hidden');
+      clickButton.disabled = false;
+      clickButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+      presenceMessage.classList.remove('hidden');
+    }
+    onlineUsers.textContent = `${totalPresentUsers} personne${totalPresentUsers > 1 ? 's' : ''} présente${totalPresentUsers > 1 ? 's' : ''}`;
+
+    // Gestion des clics sur le bouton
+    clickButton.addEventListener('click', () => {
+      totalClicks++;
+      clickCount.textContent = totalClicks;
+      localStorage.setItem('totalClicks', String(totalClicks));
+    });
+
+    // Gestion de la présence
+    presenceButton.addEventListener('click', () => {
+      isPresent = true;
+      totalPresentUsers++;
+      localStorage.setItem('userPresent', 'true');
+      localStorage.setItem('totalPresentUsers', String(totalPresentUsers));
+      presenceMessage.classList.add('hidden');
+      presenceConfirmation.classList.remove('hidden');
+      clickButton.disabled = false;
+      clickButton.classList.remove('opacity-50', 'cursor-not-allowed');
+      onlineUsers.textContent = `${totalPresentUsers} personne${totalPresentUsers > 1 ? 's' : ''} présente${totalPresentUsers > 1 ? 's' : ''}`;
+    });
+
+    // Déconnexion automatique à la fermeture
+    window.addEventListener('beforeunload', () => {
       if (isPresent) {
         localStorage.setItem('userPresent', 'false');
-        const newTotal = Math.max(0, Number(localStorage.getItem('totalPresentUsers')) - 1);
-        localStorage.setItem('totalPresentUsers', String(newTotal));
+        totalPresentUsers = Math.max(0, totalPresentUsers - 1);
+        localStorage.setItem('totalPresentUsers', String(totalPresentUsers));
       }
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleUnload);
-      handleUnload();
-    };
-  }, [isPresent]);
-
-  useEffect(() => {
-    const checkPresentUsers = () => {
-      const totalPresent = Number(localStorage.getItem('totalPresentUsers') || 0);
-      setPresentUsers(totalPresent);
-    };
-
-    checkPresentUsers();
-    const interval = setInterval(checkPresentUsers, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const incrementer = () => {
-    const newCount = count + 1;
-    setCount(newCount);
-    localStorage.setItem('totalClicks', String(newCount));
-  };
-
-  const marquerPresence = () => {
-    setIsPresent(true);
-    const newTotal = presentUsers + 1;
-    localStorage.setItem('totalPresentUsers', String(newTotal));
-    localStorage.setItem('userPresent', 'true');
-    setPresentUsers(newTotal);
-  };
-
-  useEffect(() => {
-    const userWasPresent = localStorage.getItem('userPresent') === 'true';
-    setIsPresent(userWasPresent);
-  }, []);
-
-  return (
-    <div className="flex gap-4">
-      {/* Compteur principal */}
-      <Card className="w-80">
-        <CardContent className="p-6 flex flex-col items-center gap-6">
-          <div className="flex flex-col items-center gap-2">
-            <div className="text-4xl font-bold">{count}</div>
-            <div className="text-gray-500">Nombre total de clics</div>
-            <div className="text-sm text-blue-500">
-              Le compteur est sauvegardé automatiquement
-            </div>
-          </div>
-
-          {!isPresent ? (
-            <div className="w-full">
-              <Button 
-                disabled
-                className="w-full opacity-50 cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                Connectez-vous pour cliquer
-              </Button>
-              <div className="text-sm text-orange-500 mt-2 text-center">
-                Cliquez sur "Je suis là !" pour débloquer
-              </div>
-            </div>
-          ) : (
-            <Button 
-              onClick={incrementer}
-              className="bg-blue-500 hover:bg-blue-600 w-full"
-            >
-              Cliquez-moi (+1)
-            </Button>
-          )}
-
-          <div className="flex items-center gap-2 text-lg">
-            <Users className="w-6 h-6 text-blue-500" />
-            <span>{presentUsers} personne{presentUsers > 1 ? 's' : ''} présente{presentUsers > 1 ? 's' : ''}</span>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Carte de présence */}
-      <Card className="w-64">
-        <CardContent className="p-6 flex flex-col items-center gap-4">
-          <div className="text-lg font-medium text-center">
-            Gestion de présence
-          </div>
-          
-          {!isPresent ? (
-            <Button 
-              onClick={marquerPresence}
-              className="w-full flex items-center gap-2 bg-blue-500 hover:bg-blue-600"
-            >
-              <UserCheck className="w-5 h-5" />
-              Je suis là !
-            </Button>
-          ) : (
-            <div className="text-sm text-green-600 text-center p-2 bg-green-50 rounded-lg">
-              ✓ Vous êtes marqué comme présent
-              <div className="text-xs text-gray-500 mt-1">
-                Déconnexion automatique à la fermeture
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default PresenceApp;
+    });
+  </script>
+</body>
+</html>
